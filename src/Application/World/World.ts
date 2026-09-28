@@ -44,6 +44,7 @@ export default class World {
     }
 
     update() {
+        if (this.lighting) this.lighting.update();
         if (this.monitorScreen) this.monitorScreen.update();
         if (this.environment) this.environment.update();
         if (this.coffeeSteam) this.coffeeSteam.update();

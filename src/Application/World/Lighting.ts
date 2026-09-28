@@ -1,19 +1,27 @@
 import * as THREE from 'three';
 import Application from '../Application';
 import Debug from '../Utils/Debug';
+import Time from '../Utils/Time';
+import UIEventBus from '../UI/EventBus';
 
 /**
  * Night room: the CRT is the only light in the room.
  *
  * The three room models are baked (lighting painted into their textures), so
- * they are shaded with MeshLambertMaterial + computed normals (see
+ * they are shaded with a per-pixel lit material + computed normals (see
  * Utils/BakedModel.ts) and lit here with a dim cool ambient plus two point
  * lights parked just in front of the screen: a teal one that carries the
  * colour of the Windows-95 desktop, and a weak warm one so paper and keys
- * read off-white rather than cyan. Flip NIGHT to false to get the daylight
- * (unlit, baked-only) look back.
+ * read off-white rather than cyan.
+ *
+ * "Day" is the same rig with a white ambient at full and the point lights off:
+ * Phong × white ambient renders the baked textures exactly as the original
+ * unlit look, so switching theme is only a lerp of light values.
  */
 export const NIGHT = true;
+
+export type RoomTheme = 'night' | 'day';
+const STORAGE_KEY = 'room-theme';
 
 export const NIGHT_TOKENS = {
     ink: '#0b0e13', // page / backdrop behind the scene
@@ -34,6 +42,17 @@ const DEFAULTS = {
     y: 860,
     z: 600,
 };
+
+const DAY = {
+    ambientColor: '#ffffff',
+    ambientIntensity: 1.0,
+};
+
+// Cross-fade time constant; ~1.2 s to settle.
+const TAU = 0.35;
+// Entering night, the glow overshoots briefly like a CRT warming up.
+const OVERSHOOT = 1.25;
+const OVERSHOOT_MS = 300;
 
 /**
  * Query-string overrides for tuning without a rebuild, e.g.
@@ -57,19 +76,62 @@ function tuned(): typeof DEFAULTS {
     };
 }
 
+export function storedTheme(): RoomTheme {
+    try {
+        const v = window.localStorage.getItem(STORAGE_KEY);
+        if (v === 'day' || v === 'night') return v;
+    } catch (e) {}
+    const q = new URLSearchParams(window.location.search).get('theme');
+    return q === 'day' ? 'day' : 'night';
+}
+
+export function storeTheme(theme: RoomTheme) {
+    try {
+        window.localStorage.setItem(STORAGE_KEY, theme);
+    } catch (e) {}
+}
+
+interface LightTargets {
+    ambientColor: THREE.Color;
+    ambientIntensity: number;
+    glowIntensity: number;
+    spillIntensity: number;
+}
+
 export default class Lighting {
     application: Application;
     scene: THREE.Scene;
     debug: Debug;
+    time: Time;
     ambient: THREE.AmbientLight;
     glow: THREE.PointLight;
     spill: THREE.PointLight;
+    theme: RoomTheme;
+    nightAmbient: THREE.Color;
+    nightAmbientIntensity: number;
+    nightGlow: number;
+    nightSpill: number;
+    glowScale: number;
+    target: LightTargets;
+    overshootUntil: number;
+    reduceMotion: boolean;
 
     constructor() {
         this.application = new Application();
         this.scene = this.application.scene;
         this.debug = this.application.debug;
+        this.time = this.application.time;
         const t = tuned();
+
+        this.nightAmbient = new THREE.Color(NIGHT_TOKENS.ambient);
+        this.nightAmbientIntensity = t.ambientIntensity;
+        this.nightGlow = t.glowIntensity;
+        this.nightSpill = t.spillIntensity;
+        this.glowScale = 1;
+        this.overshootUntil = 0;
+        this.reduceMotion =
+            window.matchMedia &&
+            window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
         this.ambient = new THREE.AmbientLight(
             NIGHT_TOKENS.ambient,
@@ -94,16 +156,83 @@ export default class Lighting {
 
         this.scene.add(this.ambient, this.glow, this.spill);
 
+        this.theme = storedTheme();
+        this.target = this.targetsFor(this.theme);
+        this.snap();
+
+        UIEventBus.on('themeToggle', (theme: RoomTheme) => {
+            this.setTheme(theme);
+        });
+
         if (this.debug.active) this.setDebug();
+    }
+
+    targetsFor(theme: RoomTheme): LightTargets {
+        if (theme === 'day') {
+            return {
+                ambientColor: new THREE.Color(DAY.ambientColor),
+                ambientIntensity: DAY.ambientIntensity,
+                glowIntensity: 0,
+                spillIntensity: 0,
+            };
+        }
+        return {
+            ambientColor: this.nightAmbient.clone(),
+            ambientIntensity: this.nightAmbientIntensity,
+            glowIntensity: this.nightGlow * this.glowScale,
+            spillIntensity: this.nightSpill,
+        };
+    }
+
+    setTheme(theme: RoomTheme) {
+        const entering = theme === 'night' && this.theme !== 'night';
+        this.theme = theme;
+        this.target = this.targetsFor(theme);
+        storeTheme(theme);
+        if (this.reduceMotion) {
+            this.snap();
+            return;
+        }
+        this.overshootUntil = entering ? Date.now() + OVERSHOOT_MS : 0;
+    }
+
+    /** The OS tells us what colour its desktop is; the room takes that light. */
+    setGlowColor(hex: string, scale: number = 1) {
+        this.glow.color.set(hex);
+        this.glowScale = scale;
+        this.target = this.targetsFor(this.theme);
+    }
+
+    snap() {
+        this.ambient.color.copy(this.target.ambientColor);
+        this.ambient.intensity = this.target.ambientIntensity;
+        this.glow.intensity = this.target.glowIntensity;
+        this.spill.intensity = this.target.spillIntensity;
+    }
+
+    update() {
+        const dt = Math.min(this.time.delta, 100) / 1000;
+        const k = 1 - Math.exp(-dt / TAU);
+
+        const glowTarget =
+            Date.now() < this.overshootUntil
+                ? this.target.glowIntensity * OVERSHOOT
+                : this.target.glowIntensity;
+
+        this.ambient.color.lerp(this.target.ambientColor, k);
+        this.ambient.intensity +=
+            (this.target.ambientIntensity - this.ambient.intensity) * k;
+        this.glow.intensity += (glowTarget - this.glow.intensity) * k;
+        this.spill.intensity +=
+            (this.target.spillIntensity - this.spill.intensity) * k;
     }
 
     setDebug() {
         const folder = this.debug.ui.addFolder('Night lighting');
-        folder.add(this.ambient, 'intensity', 0, 2, 0.01).name('ambient');
-        folder.addColor(this.ambient, 'color').name('ambient colour');
-        folder.add(this.glow, 'intensity', 0, 5, 0.01).name('glow');
+        folder.add(this, 'nightAmbientIntensity', 0, 2, 0.01).name('ambient');
+        folder.add(this, 'nightGlow', 0, 6, 0.01).name('glow');
+        folder.add(this, 'nightSpill', 0, 3, 0.01).name('spill');
         folder.addColor(this.glow, 'color').name('glow colour');
-        folder.add(this.spill, 'intensity', 0, 3, 0.01).name('spill');
         folder.addColor(this.spill, 'color').name('spill colour');
         folder.add(this.glow, 'distance', 500, 8000, 10).name('distance');
         folder.add(this.glow, 'decay', 0, 3, 0.05).name('decay');
@@ -116,5 +245,8 @@ export default class Lighting {
         folder
             .add(this.glow.position, 'z', -500, 2000, 5)
             .onChange(() => this.spill.position.copy(this.glow.position));
+        folder.onChange(() => {
+            this.target = this.targetsFor(this.theme);
+        });
     }
 }

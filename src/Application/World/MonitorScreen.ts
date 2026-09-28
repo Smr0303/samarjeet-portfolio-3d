@@ -7,6 +7,8 @@ import Resources from '../Utils/Resources';
 import Sizes from '../Utils/Sizes';
 import Camera from '../Camera/Camera';
 import EventEmitter from '../Utils/EventEmitter';
+import UIEventBus from '../UI/EventBus';
+import { RoomTheme, storedTheme } from './Lighting';
 
 const SCREEN_SIZE = { w: 1280, h: 1024 };
 const IFRAME_PADDING = 32;
@@ -147,7 +149,30 @@ export default class MonitorScreen extends EventEmitter {
         // Bubble mouse move events to the main application, so we can affect the camera
         iframe.onload = () => {
             if (iframe.contentWindow) {
+                // Room <-> OS bridge. The OS learns the room theme; the room
+                // takes the colour of whatever wallpaper the OS is showing.
+                const sendTheme = (theme: RoomTheme) =>
+                    iframe.contentWindow?.postMessage(
+                        { type: 'room-theme', theme },
+                        '*'
+                    );
+                sendTheme(storedTheme());
+                UIEventBus.on('themeToggle', sendTheme);
+
                 window.addEventListener('message', (event) => {
+                    if (!event.data || typeof event.data.type !== 'string')
+                        return;
+                    if (event.data.type === 'os-wallpaper') {
+                        const lighting = this.application.world?.lighting;
+                        if (lighting && typeof event.data.lightColor === 'string')
+                            lighting.setGlowColor(
+                                event.data.lightColor,
+                                typeof event.data.intensityScale === 'number'
+                                    ? event.data.intensityScale
+                                    : 1
+                            );
+                        return;
+                    }
                     var evt = new CustomEvent(event.data.type, {
                         bubbles: true,
                         cancelable: false,
