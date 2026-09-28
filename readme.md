@@ -1,29 +1,17 @@
-# henryheffernan.com
+# samarjeet-portfolio-3d
 
-This is one of two repositories created for my portfolio website <a href="https://henryheffernan.com/"><samp>henryheffernan.com</samp></a>. If you are looking for the 2D OS repository you can find it <a href="https://github.com/henryjeff/portfolio-inner-site"><samp>here</samp></a>! Thanks for taking the time to check this out. If you have any questions of comments, feel free to shoot me an email at <samp><a href="mailto:henryheffernan@gmail.com">henryheffernan@gmail.com</a></samp> or you can DM me on twitter <a href="https://twitter.com/henryheffernan"><samp>@henryheffernan</samp></a>.
+The 3D half of [samarjeet-portfolio-3d.vercel.app](https://samarjeet-portfolio-3d.vercel.app): a Three.js desk
+scene whose CRT monitor loads the Windows-95 style OS from
+[Smr0303/samarjeet-os](https://github.com/Smr0303/samarjeet-os) in an iframe.
 
-<br>
-
-To setup a dev environment:
+Forked from [henryjeff/portfolio-website](https://github.com/henryjeff/portfolio-website) (MIT).
+The scene, models, textures and sound design are Henry Heffernan's; the content is mine.
 
 ```bash
-# Clone the repository
-
-# Install dependencies 
 npm i
-
-# Run the local dev server
-npm run dev
+npm run dev      # webpack dev server on :8080
+npm run build    # static build into public/
 ```
 
-To serve a production build:
-
-```bash
-# Install dependencies if not already done - 'npi i'
-
-# Build for production
-npm run build
-
-# Serve the build using express
-npm start
-```
+The monitor iframe URL lives in `src/Application/World/MonitorScreen.ts`. Point it at
+`http://localhost:3000/` to develop against a local copy of the OS.
