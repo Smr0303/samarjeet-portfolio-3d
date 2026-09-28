@@ -8,6 +8,7 @@ import CoffeeSteam from './CoffeeSteam';
 import Cursor from './Cursor';
 import Hitboxes from './Hitboxes';
 import AudioManager from '../Audio/AudioManager';
+import Lighting, { NIGHT } from './Lighting';
 export default class World {
     application: Application;
     scene: THREE.Scene;
@@ -19,6 +20,7 @@ export default class World {
     computerSetup: ComputerSetup;
     monitorScreen: MonitorScreen;
     coffeeSteam: CoffeeSteam;
+    lighting: Lighting;
     cursor: Cursor;
     audioManager: AudioManager;
 
@@ -34,6 +36,7 @@ export default class World {
             this.computerSetup = new ComputerSetup();
             this.monitorScreen = new MonitorScreen();
             this.coffeeSteam = new CoffeeSteam();
+            if (NIGHT) this.lighting = new Lighting();
             this.audioManager = new AudioManager();
             // const hb = new Hitboxes();
             // this.cursor = new Cursor();

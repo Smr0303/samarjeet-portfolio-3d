@@ -228,8 +228,10 @@ export default class MonitorScreen extends EventEmitter {
         // Add to CSS scene
         this.cssScene.add(object);
 
-        // Create GL plane
-        const material = new THREE.MeshLambertMaterial();
+        // Create GL plane. Unlit black: with scene lights present a lit
+        // material would write lit rgb at alpha 0, which the browser composites
+        // as added light over the CSS screen (premultiplied alpha).
+        const material = new THREE.MeshBasicMaterial({ color: 0x000000 });
         material.side = THREE.DoubleSide;
         material.opacity = 0;
         material.transparent = true;
