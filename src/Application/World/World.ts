@@ -7,6 +7,7 @@ import Decor from './Decor';
 import CoffeeSteam from './CoffeeSteam';
 import Cursor from './Cursor';
 import Hitboxes from './Hitboxes';
+import Cat from './Cat';
 import AudioManager from '../Audio/AudioManager';
 import Lighting, { NIGHT } from './Lighting';
 export default class World {
@@ -20,6 +21,7 @@ export default class World {
     computerSetup: ComputerSetup;
     monitorScreen: MonitorScreen;
     coffeeSteam: CoffeeSteam;
+    cat: Cat;
     lighting: Lighting;
     cursor: Cursor;
     audioManager: AudioManager;
@@ -36,6 +38,7 @@ export default class World {
             this.computerSetup = new ComputerSetup();
             this.monitorScreen = new MonitorScreen();
             this.coffeeSteam = new CoffeeSteam();
+            this.cat = new Cat();
             if (NIGHT) this.lighting = new Lighting();
             this.audioManager = new AudioManager();
             // const hb = new Hitboxes();
@@ -48,6 +51,7 @@ export default class World {
         if (this.monitorScreen) this.monitorScreen.update();
         if (this.environment) this.environment.update();
         if (this.coffeeSteam) this.coffeeSteam.update();
+        if (this.cat) this.cat.update();
         if (this.audioManager) this.audioManager.update();
     }
 }

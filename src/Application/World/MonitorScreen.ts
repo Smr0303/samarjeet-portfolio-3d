@@ -34,6 +34,9 @@ export default class MonitorScreen extends EventEmitter {
     inComputer: boolean;
     mouseClickInProgress: boolean;
     dimmingPlane: THREE.Mesh;
+    screenOff: THREE.Mesh;
+    powered: boolean;
+    powerOnTime: number;
     videoTextures: { [key in string]: THREE.VideoTexture };
 
     constructor() {
@@ -50,6 +53,8 @@ export default class MonitorScreen extends EventEmitter {
         this.videoTextures = {};
         this.mouseClickInProgress = false;
         this.shouldLeaveMonitor = false;
+        this.powered = false;
+        this.powerOnTime = -1;
 
         // Create screen
         this.initializeScreenEvents();
@@ -57,6 +62,7 @@ export default class MonitorScreen extends EventEmitter {
         const maxOffset = this.createTextureLayers();
         this.createEnclosingPlanes(maxOffset);
         this.createPerspectiveDimmer(maxOffset);
+        this.createScreenOff();
     }
 
     initializeScreenEvents() {
@@ -73,7 +79,11 @@ export default class MonitorScreen extends EventEmitter {
                 // @ts-ignore
                 this.inComputer = event.inComputer;
 
-                if (this.inComputer && !this.prevInComputer) {
+                if (
+                    this.inComputer &&
+                    !this.prevInComputer &&
+                    this.powered
+                ) {
                     this.camera.trigger('enterMonitor');
                 }
 
@@ -509,6 +519,34 @@ export default class MonitorScreen extends EventEmitter {
     }
 
     /**
+     * Black plane just in front of the screen: the monitor starts switched
+     * off and the cat turns it on (see Cat.ts).
+     */
+    createScreenOff() {
+        this.screenOff = new THREE.Mesh(
+            new THREE.PlaneGeometry(this.screenSize.width, this.screenSize.height),
+            new THREE.MeshBasicMaterial({
+                color: 0x000000,
+                transparent: true,
+                opacity: 1,
+            })
+        );
+        this.screenOff.position.copy(
+            this.offsetPosition(this.position, new THREE.Vector3(0, 0, 4))
+        );
+        this.screenOff.rotation.copy(this.rotation);
+        this.scene.add(this.screenOff);
+    }
+
+    powerOn() {
+        if (this.powered) return;
+        this.powered = true;
+        this.powerOnTime = 0;
+        this.application.world.lighting?.setScreenOn();
+        UIEventBus.dispatch('screenPowerOn', {});
+    }
+
+    /**
      * Offsets a position vector by another vector
      * @param position the position to offset
      * @param offset the offset to apply
@@ -522,6 +560,19 @@ export default class MonitorScreen extends EventEmitter {
     }
 
     update() {
+        // CRT warm-up: a bright flicker, then the black plane fades out
+        if (this.powerOnTime >= 0) {
+            this.powerOnTime += Math.min(this.application.time.delta, 100) / 1000;
+            const t = this.powerOnTime;
+            const material = this.screenOff.material as THREE.MeshBasicMaterial;
+            if (t < 0.25) material.opacity = Math.random() < 0.5 ? 0.15 : 0.9;
+            else material.opacity = Math.max(0, 1 - (t - 0.25) / 0.6) * 0.6;
+            if (t > 0.85) {
+                this.screenOff.visible = false;
+                this.powerOnTime = -1;
+            }
+        }
+
         if (this.dimmingPlane) {
             const planeNormal = new THREE.Vector3(0, 0, 1);
             const viewVector = new THREE.Vector3();

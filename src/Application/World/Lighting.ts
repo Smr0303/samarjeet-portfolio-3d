@@ -112,6 +112,7 @@ export default class Lighting {
     nightGlow: number;
     nightSpill: number;
     glowScale: number;
+    screenOn: boolean;
     target: LightTargets;
     overshootUntil: number;
     reduceMotion: boolean;
@@ -128,6 +129,7 @@ export default class Lighting {
         this.nightGlow = t.glowIntensity;
         this.nightSpill = t.spillIntensity;
         this.glowScale = 1;
+        this.screenOn = false;
         this.overshootUntil = 0;
         this.reduceMotion =
             window.matchMedia &&
@@ -179,9 +181,16 @@ export default class Lighting {
         return {
             ambientColor: this.nightAmbient.clone(),
             ambientIntensity: this.nightAmbientIntensity,
-            glowIntensity: this.nightGlow * this.glowScale,
-            spillIntensity: this.nightSpill,
+            glowIntensity: this.screenOn ? this.nightGlow * this.glowScale : 0,
+            spillIntensity: this.screenOn ? this.nightSpill : 0,
         };
+    }
+
+    /** The monitor starts off; when it powers on the room light warms up. */
+    setScreenOn() {
+        this.screenOn = true;
+        this.target = this.targetsFor(this.theme);
+        this.overshootUntil = this.reduceMotion ? 0 : Date.now() + OVERSHOOT_MS;
     }
 
     setTheme(theme: RoomTheme) {

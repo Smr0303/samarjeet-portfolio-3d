@@ -70,6 +70,8 @@ export default class Camera extends EventEmitter {
             event.preventDefault();
             // @ts-ignore
             if (event.target.id === 'prevent-click') return;
+            // @ts-ignore
+            if (event.catHandled) return;
             // print target and current keyframe
             if (
                 this.currentKeyframe === CameraKey.IDLE ||

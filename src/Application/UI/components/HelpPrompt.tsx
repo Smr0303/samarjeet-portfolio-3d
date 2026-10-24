@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import UIEventBus from '../EventBus';
 
-const HELP_TEXT = 'Click anywhere to begin';
+const HELP_TEXT = 'Click the cat to begin';
 
 type HelpPromptProps = {};
 
@@ -32,7 +32,7 @@ const HelpPrompt: React.FC<HelpPromptProps> = () => {
         setTimeout(() => {
             typeHelpText(0, '');
         }, 500);
-        document.addEventListener('mousedown', () => {
+        UIEventBus.on('catStart', () => {
             setVisible(false);
         });
         UIEventBus.on('enterMonitor', () => {
