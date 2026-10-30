@@ -8,6 +8,9 @@ import CoffeeSteam from './CoffeeSteam';
 import Cursor from './Cursor';
 import Hitboxes from './Hitboxes';
 import Cat from './Cat';
+import Room from './Room';
+import RainWindow from './RainWindow';
+import Achievements from './Achievements';
 import AudioManager from '../Audio/AudioManager';
 import Lighting, { NIGHT } from './Lighting';
 export default class World {
@@ -22,6 +25,9 @@ export default class World {
     monitorScreen: MonitorScreen;
     coffeeSteam: CoffeeSteam;
     cat: Cat;
+    room: Room;
+    rainWindow: RainWindow;
+    achievements: Achievements;
     lighting: Lighting;
     cursor: Cursor;
     audioManager: AudioManager;
@@ -39,6 +45,9 @@ export default class World {
             this.monitorScreen = new MonitorScreen();
             this.coffeeSteam = new CoffeeSteam();
             this.cat = new Cat();
+            this.room = new Room();
+            this.rainWindow = new RainWindow();
+            this.achievements = new Achievements();
             if (NIGHT) this.lighting = new Lighting();
             this.audioManager = new AudioManager();
             // const hb = new Hitboxes();
@@ -52,6 +61,8 @@ export default class World {
         if (this.environment) this.environment.update();
         if (this.coffeeSteam) this.coffeeSteam.update();
         if (this.cat) this.cat.update();
+        if (this.rainWindow) this.rainWindow.update();
+        if (this.achievements) this.achievements.update();
         if (this.audioManager) this.audioManager.update();
     }
 }

@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 import { CameraKey } from './Camera';
-import Time from '../Utils/Time';
 import Application from '../Application';
 import Mouse from '../Utils/Mouse';
 import Sizes from '../Utils/Sizes';
@@ -19,7 +18,7 @@ export class CameraKeyframeInstance {
 
 const keys: { [key in CameraKey]: CameraKeyframe } = {
     idle: {
-        position: new THREE.Vector3(-20000, 12000, 20000),
+        position: new THREE.Vector3(-20000, 9000, 20000),
         focalPoint: new THREE.Vector3(0, -1000, 0),
     },
     monitor: {
@@ -111,25 +110,38 @@ export class DeskKeyframe extends CameraKeyframeInstance {
     }
 }
 
+/**
+ * Idle: a fixed view into the room's open corner that leans a little with
+ * the mouse and settles back, so the room never drifts away on its own.
+ */
 export class IdleKeyframe extends CameraKeyframeInstance {
-    time: Time;
+    application: Application;
+    mouse: Mouse;
+    sizes: Sizes;
     origin: THREE.Vector3;
+    lean: THREE.Vector2;
 
     constructor() {
         const keyframe = keys.idle;
         super(keyframe);
+        this.application = new Application();
+        this.mouse = this.application.mouse;
+        this.sizes = this.application.sizes;
         this.origin = new THREE.Vector3().copy(keyframe.position);
-        this.time = new Time();
+        this.lean = new THREE.Vector2();
     }
 
     update() {
-        this.position.x =
-            Math.sin((this.time.elapsed + 19000) * 0.00008) * this.origin.x;
-        this.position.y =
-            Math.sin((this.time.elapsed + 1000) * 0.000004) * 4000 +
-            this.origin.y -
-            3000;
-        this.position.z = this.position.z;
+        // -1..1 from the centre of the screen; nothing until the mouse moves
+        const mx = this.mouse.x ? this.mouse.x / this.sizes.width - 0.5 : 0;
+        const my = this.mouse.y ? this.mouse.y / this.sizes.height - 0.5 : 0;
+        this.lean.x += (mx * 2 - this.lean.x) * 0.04;
+        this.lean.y += (my * 2 - this.lean.y) * 0.04;
+
+        // lean sideways around the room (x and z move together) and up/down
+        this.position.x = this.origin.x + this.lean.x * 2500;
+        this.position.z = this.origin.z + this.lean.x * 2500;
+        this.position.y = this.origin.y - this.lean.y * 1500;
     }
 }
 

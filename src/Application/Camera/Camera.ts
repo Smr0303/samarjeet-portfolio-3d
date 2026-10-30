@@ -211,6 +211,10 @@ export default class Camera extends EventEmitter {
         );
         this.orbitControls.dampingFactor = 0.05;
         this.orbitControls.maxPolarAngle = Math.PI / 2;
+        // keep free cam on the open side of the room so the walls never
+        // block the view (azimuth 0 is straight in from +z)
+        this.orbitControls.minAzimuthAngle = -Math.PI / 2 + 0.1;
+        this.orbitControls.maxAzimuthAngle = -0.1;
         this.orbitControls.minDistance = 4000;
         this.orbitControls.maxDistance = 29000;
 

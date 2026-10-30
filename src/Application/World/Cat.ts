@@ -31,6 +31,7 @@ const WALK_SPEED = 950; // average world units / s, eased in and out
 const STRIDE = 390; // world units the body moves per gait cycle
 const JUMP_HEIGHT = 1300; // parabola height over the straight floor -> seat line
 const ZOOM_DELAY = 1.2; // s after power-on, so the screen lighting up is seen
+const CAMERA_SETTLE_MS = 2000; // the post-load fly-in to the idle view
 
 // seconds spent in each timed state
 const DURATIONS = {
@@ -224,6 +225,7 @@ export default class Cat {
     gait: number;
     tiltTime: number;
     clicked: boolean;
+    ready: boolean;
 
     // idle life: glances, blinks and ear flicks on random timers
     glance: number;
@@ -258,6 +260,7 @@ export default class Cat {
         this.gait = 0;
         this.tiltTime = -1;
         this.clicked = false;
+        this.ready = false;
 
         this.glance = 0;
         this.glanceTarget = 0;
@@ -504,10 +507,10 @@ export default class Cat {
 
         // Invisible click target, generous so the small cat is easy to hit
         this.hitbox = new THREE.Mesh(
-            new THREE.BoxGeometry(3.6, 3, 2.6),
+            new THREE.BoxGeometry(3.0, 2.6, 2.2),
             new THREE.MeshBasicMaterial({ visible: false })
         );
-        this.hitbox.position.set(0.1, 1.3, 0);
+        this.hitbox.position.set(0.1, 1.1, 0);
         this.root.add(this.hitbox);
     }
 
@@ -603,12 +606,24 @@ export default class Cat {
     }
 
     setClickListener() {
+        // Not clickable until the camera has flown in after START: on the
+        // loading view the cat sits right behind the START button
+        UIEventBus.on('loadingScreenDone', () =>
+            setTimeout(() => (this.ready = true), CAMERA_SETTLE_MS)
+        );
+
         // Capture phase so this runs before Camera's document listener, which
         // skips its idle/desk toggle when the cat has handled the click.
         window.addEventListener(
             'mousedown',
             (event) => {
                 if (this.camera.freeCam) return;
+                // presses on the overlay buttons are not clicks in the room
+                // @ts-ignore
+                if (event.target.id === 'prevent-click') return;
+                // during the fly-in, swallow clicks without starting
+                // @ts-ignore
+                if (!this.ready) return void (event.catHandled = true);
                 const introRunning = this.state !== 'seated';
                 const pointer = new THREE.Vector2(
                     (event.clientX / this.sizes.width) * 2 - 1,
