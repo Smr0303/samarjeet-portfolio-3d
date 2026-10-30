@@ -32,12 +32,6 @@ type AudioResource = {
     path: string;
 };
 
-type EnclosingPlane = {
-    size: THREE.Vector2;
-    position: THREE.Vector3;
-    rotation: THREE.Euler;
-};
-
 type CameraKeyframe = {
     position: THREE.Vector3;
     focalPoint: THREE.Vector3;

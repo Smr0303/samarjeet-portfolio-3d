@@ -27,6 +27,8 @@
         "html-webpack-plugin": "^5.5.0",
         "ip": "^1.1.5",
         "lil-gui": "^0.16.0",
+        "livekit-client": "^2.23.0",
+        "livekit-server-sdk": "^2.19.2",
         "mini-css-extract-plugin": "^2.5.3",
         "portfinder-sync": "0.0.2",
         "raw-loader": "^4.0.2",

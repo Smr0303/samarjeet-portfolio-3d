@@ -16,6 +16,10 @@ export class CameraKeyframeInstance {
     update() {}
 }
 
+// The OS panel on the monitor (SCREEN_SIZE and position in MonitorScreen.ts;
+// not imported, as MonitorScreen depends on Camera)
+const MONITOR_SCREEN = { w: 1920, h: 1200, z: 255 };
+
 const keys: { [key in CameraKey]: CameraKeyframe } = {
     idle: {
         position: new THREE.Vector3(-20000, 9000, 20000),
@@ -55,9 +59,15 @@ export class MonitorKeyframe extends CameraKeyframeInstance {
     }
 
     update() {
-        const aspect = this.sizes.height / this.sizes.width;
-        const additionalZoom = this.sizes.width < 768 ? 0 : 600;
-        this.targetPos.z = this.origin.z + aspect * 1200 - additionalZoom;
+        // Back off just far enough that the whole panel fits the window,
+        // by height or by width, with a little margin
+        const camera = this.application.camera.instance;
+        const tan = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+        const aspect = this.sizes.width / this.sizes.height;
+        const margin = this.sizes.width < 768 ? 1.01 : 1.04;
+        const byHeight = (MONITOR_SCREEN.h * margin) / 2 / tan;
+        const byWidth = (MONITOR_SCREEN.w * margin) / 2 / (tan * aspect);
+        this.targetPos.z = MONITOR_SCREEN.z + Math.max(byHeight, byWidth);
         this.position.copy(this.targetPos);
     }
 }

@@ -89,8 +89,11 @@ export default class Achievements {
             this.addFrame(a, BOTTOM.z0 + i * BOTTOM.gap, BOTTOM.y, BOTTOM.width, BOTTOM.height, poolTexture)
         );
 
+        // panels over the scene (the call panel) are not the wall
+        const inUi = (event: MouseEvent) =>
+            !!(event.target as HTMLElement).closest?.('[data-ui]');
         window.addEventListener('mousemove', (event) => {
-            this.pointer = this.toPointer(event);
+            this.pointer = inUi(event) ? null : this.toPointer(event);
         });
         // Capture phase, like the cat, so a click on a profile doesn't also
         // move the camera; the tab opens on click (a user gesture)
@@ -98,12 +101,12 @@ export default class Achievements {
             'mousedown',
             (event) => {
                 // @ts-ignore
-                if (this.frameAt(this.toPointer(event))?.url) event.catHandled = true;
+                if (!inUi(event) && this.frameAt(this.toPointer(event))?.url) event.catHandled = true;
             },
             true
         );
         window.addEventListener('click', (event) => {
-            const url = this.frameAt(this.toPointer(event))?.url;
+            const url = !inUi(event) && this.frameAt(this.toPointer(event))?.url;
             if (url) window.open(url, '_blank', 'noopener');
         });
     }

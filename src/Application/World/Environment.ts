@@ -27,7 +27,12 @@ export default class Environment {
     }
 
     setModel() {
-        this.scene.add(this.bakedModel.getModel());
+        const model = this.bakedModel.getModel();
+        // the room floats on the page's dawn gradient instead of the big
+        // grey backdrop box
+        const backdrop = model.getObjectByName('Background');
+        if (backdrop) backdrop.visible = false;
+        this.scene.add(model);
     }
 
     update() {}

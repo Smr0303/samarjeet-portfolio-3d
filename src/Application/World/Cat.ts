@@ -618,9 +618,10 @@ export default class Cat {
             'mousedown',
             (event) => {
                 if (this.camera.freeCam) return;
-                // presses on the overlay buttons are not clicks in the room
-                // @ts-ignore
-                if (event.target.id === 'prevent-click') return;
+                // presses on the overlay buttons and panels are not clicks
+                // in the room
+                const target = event.target as HTMLElement;
+                if (target.id === 'prevent-click' || target.closest?.('[data-ui]')) return;
                 // during the fly-in, swallow clicks without starting
                 // @ts-ignore
                 if (!this.ready) return void (event.catHandled = true);

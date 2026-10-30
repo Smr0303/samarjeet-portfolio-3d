@@ -1,0 +1,9 @@
+[project]
+name = "samarjeet-phone"
+version = "0.1.0"
+description = "LiveKit voice agent behind the desk phone on the portfolio"
+requires-python = ">=3.10"
+dependencies = [
+    "livekit-agents[google]~=1.8",
+    "python-dotenv",
+]

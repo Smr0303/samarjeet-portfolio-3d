@@ -1,6 +1,6 @@
 import Application from '../Application';
 import Resources from '../Utils/Resources';
-import ComputerSetup from './Computer';
+import Workstation from './Workstation';
 import MonitorScreen from './MonitorScreen';
 import Environment from './Environment';
 import Decor from './Decor';
@@ -9,8 +9,12 @@ import Cursor from './Cursor';
 import Hitboxes from './Hitboxes';
 import Cat from './Cat';
 import Room from './Room';
-import RainWindow from './RainWindow';
+import DawnWindow from './DawnWindow';
 import Achievements from './Achievements';
+import Phone from './Phone';
+import Guitar from './Guitar';
+import Bookshelf from './Bookshelf';
+import NeonSign from './NeonSign';
 import AudioManager from '../Audio/AudioManager';
 import Lighting, { NIGHT } from './Lighting';
 export default class World {
@@ -21,13 +25,17 @@ export default class World {
     // Objects in the scene
     environment: Environment;
     decor: Decor;
-    computerSetup: ComputerSetup;
+    workstation: Workstation;
     monitorScreen: MonitorScreen;
     coffeeSteam: CoffeeSteam;
     cat: Cat;
     room: Room;
-    rainWindow: RainWindow;
+    dawnWindow: DawnWindow;
     achievements: Achievements;
+    phone: Phone;
+    guitar: Guitar;
+    bookshelf: Bookshelf;
+    neonSign: NeonSign;
     lighting: Lighting;
     cursor: Cursor;
     audioManager: AudioManager;
@@ -41,13 +49,17 @@ export default class World {
             // Setup
             this.environment = new Environment();
             this.decor = new Decor();
-            this.computerSetup = new ComputerSetup();
+            this.workstation = new Workstation();
             this.monitorScreen = new MonitorScreen();
             this.coffeeSteam = new CoffeeSteam();
             this.cat = new Cat();
             this.room = new Room();
-            this.rainWindow = new RainWindow();
+            this.dawnWindow = new DawnWindow();
             this.achievements = new Achievements();
+            this.phone = new Phone();
+            this.guitar = new Guitar();
+            this.bookshelf = new Bookshelf();
+            this.neonSign = new NeonSign();
             if (NIGHT) this.lighting = new Lighting();
             this.audioManager = new AudioManager();
             // const hb = new Hitboxes();
@@ -61,8 +73,12 @@ export default class World {
         if (this.environment) this.environment.update();
         if (this.coffeeSteam) this.coffeeSteam.update();
         if (this.cat) this.cat.update();
-        if (this.rainWindow) this.rainWindow.update();
+        if (this.workstation) this.workstation.update();
+        if (this.dawnWindow) this.dawnWindow.update();
         if (this.achievements) this.achievements.update();
+        if (this.phone) this.phone.update();
+        if (this.guitar) this.guitar.update();
+        if (this.neonSign) this.neonSign.update();
         if (this.audioManager) this.audioManager.update();
     }
 }

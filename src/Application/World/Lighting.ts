@@ -5,7 +5,8 @@ import Time from '../Utils/Time';
 import UIEventBus from '../UI/EventBus';
 
 /**
- * Night room: the CRT is the only light in the room.
+ * Dawn room: a soft lavender ambient (the sun comes in through the window,
+ * see DawnWindow.ts), plus the monitor's glow.
  *
  * The three room models are baked (lighting painted into their textures), so
  * they are shaded with a per-pixel lit material + computed normals (see
@@ -25,13 +26,13 @@ const STORAGE_KEY = 'room-theme';
 
 export const NIGHT_TOKENS = {
     ink: '#0b0e13', // page / backdrop behind the scene
-    ambient: '#2a3140', // what unlit surfaces read as
+    ambient: '#9a93b5', // dawn: what surfaces read as before the sun
     glow: '#8fd9d3', // OS desktop teal, lifted two stops
     spill: '#f2e8d0', // the "paper" of the OS windows
 };
 
 const DEFAULTS = {
-    ambientIntensity: 0.16,
+    ambientIntensity: 0.5,
     glowIntensity: 3.4,
     spillIntensity: 0.8,
     distance: 2000,

@@ -1,15 +1,5 @@
 const sources: Resource[] = [
     {
-        name: 'computerSetupModel',
-        type: 'gltfModel',
-        path: 'models/Computer/computer_setup.glb',
-    },
-    {
-        name: 'computerSetupTexture',
-        type: 'texture',
-        path: 'models/Computer/baked_computer.jpg',
-    },
-    {
         name: 'environmentModel',
         type: 'gltfModel',
         path: 'models/World/environment.glb',
@@ -33,11 +23,6 @@ const sources: Resource[] = [
         name: 'monitorSmudgeTexture',
         type: 'texture',
         path: 'textures/monitor/layers/compressed/smudges.jpg',
-    },
-    {
-        name: 'monitorShadowTexture',
-        type: 'texture',
-        path: 'textures/monitor/layers/compressed/shadow-compressed.png',
     },
     {
         name: 'mouseDown',

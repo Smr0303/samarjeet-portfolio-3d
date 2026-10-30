@@ -10,11 +10,16 @@ import EventEmitter from '../Utils/EventEmitter';
 import UIEventBus from '../UI/EventBus';
 import { RoomTheme, storedTheme } from './Lighting';
 
-const SCREEN_SIZE = { w: 1280, h: 1024 };
-const IFRAME_PADDING = 32;
+// A 16:10 panel on the modern monitor (see Workstation.ts), in world units
+export const SCREEN_SIZE = { w: 1920, h: 1200 };
+// The OS renders at this CSS size and is scaled up onto the panel, so its
+// text reads larger when the camera zooms in
+const SCREEN_PX = { w: 1280, h: 800 };
+const PX_SCALE = SCREEN_SIZE.w / SCREEN_PX.w;
+const IFRAME_PADDING = 24;
 const IFRAME_SIZE = {
-    w: SCREEN_SIZE.w - IFRAME_PADDING,
-    h: SCREEN_SIZE.h - IFRAME_PADDING,
+    w: SCREEN_PX.w - IFRAME_PADDING,
+    h: SCREEN_PX.h - IFRAME_PADDING,
 };
 
 export default class MonitorScreen extends EventEmitter {
@@ -37,7 +42,6 @@ export default class MonitorScreen extends EventEmitter {
     screenOff: THREE.Mesh;
     powered: boolean;
     powerOnTime: number;
-    videoTextures: { [key in string]: THREE.VideoTexture };
 
     constructor() {
         super();
@@ -50,7 +54,6 @@ export default class MonitorScreen extends EventEmitter {
         this.camera = this.application.camera;
         this.position = new THREE.Vector3(0, 950, 255);
         this.rotation = new THREE.Euler(-3 * THREE.MathUtils.DEG2RAD, 0, 0);
-        this.videoTextures = {};
         this.mouseClickInProgress = false;
         this.shouldLeaveMonitor = false;
         this.powered = false;
@@ -60,7 +63,6 @@ export default class MonitorScreen extends EventEmitter {
         this.initializeScreenEvents();
         this.createIframe();
         const maxOffset = this.createTextureLayers();
-        this.createEnclosingPlanes(maxOffset);
         this.createPerspectiveDimmer(maxOffset);
         this.createScreenOff();
     }
@@ -148,8 +150,8 @@ export default class MonitorScreen extends EventEmitter {
     createIframe() {
         // Create container
         const container = document.createElement('div');
-        container.style.width = this.screenSize.width + 'px';
-        container.style.height = this.screenSize.height + 'px';
+        container.style.width = SCREEN_PX.w + 'px';
+        container.style.height = SCREEN_PX.h + 'px';
         container.style.opacity = '1';
         container.style.background = '#1d2e2f';
 
@@ -229,10 +231,10 @@ export default class MonitorScreen extends EventEmitter {
          */
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.has('dev')) {
-            iframe.src = 'https://samarjeet-os.vercel.app/';
+            iframe.src = 'http://localhost:3000/';
         }
-        iframe.style.width = this.screenSize.width + 'px';
-        iframe.style.height = this.screenSize.height + 'px';
+        iframe.style.width = SCREEN_PX.w + 'px';
+        iframe.style.height = SCREEN_PX.h + 'px';
         iframe.style.padding = IFRAME_PADDING + 'px';
         iframe.style.boxSizing = 'border-box';
         iframe.style.opacity = '1';
@@ -259,6 +261,7 @@ export default class MonitorScreen extends EventEmitter {
         // copy monitor position and rotation
         object.position.copy(this.position);
         object.rotation.copy(this.rotation);
+        object.scale.setScalar(PX_SCALE);
 
         // Add to CSS scene
         this.cssScene.add(object);
@@ -273,11 +276,8 @@ export default class MonitorScreen extends EventEmitter {
         // NoBlending allows the GL plane to occlude the CSS plane
         material.blending = THREE.NoBlending;
 
-        // Create plane geometry
-        const geometry = new THREE.PlaneGeometry(
-            this.screenSize.width,
-            this.screenSize.height
-        );
+        // Create plane geometry (CSS pixels; scaled like the CSS object)
+        const geometry = new THREE.PlaneGeometry(SCREEN_PX.w, SCREEN_PX.h);
 
         // Create the GL plane mesh
         const mesh = new THREE.Mesh(geometry, material);
@@ -292,77 +292,18 @@ export default class MonitorScreen extends EventEmitter {
     }
 
     /**
-     * Creates the texture layers for the computer screen
+     * The glass in front of the flat panel: just a faint sheen of smudges.
      * @returns the maximum offset of the texture layers
      */
     createTextureLayers() {
-        const textures = this.resources.items.texture;
-
-        this.getVideoTextures('video-1');
-        this.getVideoTextures('video-2');
-
-        // Scale factor to multiply depth offset by
-        const scaleFactor = 4;
-
-        // Construct the texture layers
-        const layers = {
-            smudge: {
-                texture: textures.monitorSmudgeTexture,
-                blending: THREE.AdditiveBlending,
-                opacity: 0.12,
-                offset: 24,
-            },
-            innerShadow: {
-                texture: textures.monitorShadowTexture,
-                blending: THREE.NormalBlending,
-                opacity: 1,
-                offset: 5,
-            },
-            video: {
-                texture: this.videoTextures['video-1'],
-                blending: THREE.AdditiveBlending,
-                opacity: 0.5,
-                offset: 10,
-            },
-            video2: {
-                texture: this.videoTextures['video-2'],
-                blending: THREE.AdditiveBlending,
-                opacity: 0.1,
-                offset: 15,
-            },
-        };
-
-        // Declare max offset
-        let maxOffset = -1;
-
-        // Add the texture layers to the screen
-        for (const [_, layer] of Object.entries(layers)) {
-            const offset = layer.offset * scaleFactor;
-            this.addTextureLayer(
-                layer.texture,
-                layer.blending,
-                layer.opacity,
-                offset
-            );
-            // Calculate the max offset
-            if (offset > maxOffset) maxOffset = offset;
-        }
-
-        // Return the max offset
-        return maxOffset;
-    }
-
-    getVideoTextures(videoId: string) {
-        const video = document.getElementById(videoId);
-        if (!video) {
-            setTimeout(() => {
-                this.getVideoTextures(videoId);
-            }, 100);
-        } else {
-            this.videoTextures[videoId] = new THREE.VideoTexture(
-                video as HTMLVideoElement
-            );
-        }
+        const offset = 8;
+        this.addTextureLayer(
+            this.resources.items.texture.monitorSmudgeTexture,
+            THREE.AdditiveBlending,
+            0.04,
+            offset
+        );
+        return offset;
     }
 
     /**
@@ -403,88 +344,6 @@ export default class MonitorScreen extends EventEmitter {
 
         // Copy rotation
         mesh.rotation.copy(this.rotation);
-
-        this.scene.add(mesh);
-    }
-
-    /**
-     * Creates enclosing planes for the computer screen
-     * @param maxOffset the maximum offset of the texture layers
-     */
-    createEnclosingPlanes(maxOffset: number) {
-        // Create planes, lots of boiler plate code here because I'm lazy
-        const planes = {
-            left: {
-                size: new THREE.Vector2(maxOffset, this.screenSize.height),
-                position: this.offsetPosition(
-                    this.position,
-                    new THREE.Vector3(
-                        -this.screenSize.width / 2,
-                        0,
-                        maxOffset / 2
-                    )
-                ),
-                rotation: new THREE.Euler(0, 90 * THREE.MathUtils.DEG2RAD, 0),
-            },
-            right: {
-                size: new THREE.Vector2(maxOffset, this.screenSize.height),
-                position: this.offsetPosition(
-                    this.position,
-                    new THREE.Vector3(
-                        this.screenSize.width / 2,
-                        0,
-                        maxOffset / 2
-                    )
-                ),
-                rotation: new THREE.Euler(0, 90 * THREE.MathUtils.DEG2RAD, 0),
-            },
-            top: {
-                size: new THREE.Vector2(this.screenSize.width, maxOffset),
-                position: this.offsetPosition(
-                    this.position,
-                    new THREE.Vector3(
-                        0,
-                        this.screenSize.height / 2,
-                        maxOffset / 2
-                    )
-                ),
-                rotation: new THREE.Euler(90 * THREE.MathUtils.DEG2RAD, 0, 0),
-            },
-            bottom: {
-                size: new THREE.Vector2(this.screenSize.width, maxOffset),
-                position: this.offsetPosition(
-                    this.position,
-                    new THREE.Vector3(
-                        0,
-                        -this.screenSize.height / 2,
-                        maxOffset / 2
-                    )
-                ),
-                rotation: new THREE.Euler(90 * THREE.MathUtils.DEG2RAD, 0, 0),
-            },
-        };
-
-        // Add each of the planes
-        for (const [_, plane] of Object.entries(planes)) {
-            this.createEnclosingPlane(plane);
-        }
-    }
-
-    /**
-     * Creates a plane for the enclosing planes
-     * @param plane the plane to create
-     */
-    createEnclosingPlane(plane: EnclosingPlane) {
-        const material = new THREE.MeshBasicMaterial({
-            side: THREE.DoubleSide,
-            color: 0x48493f,
-        });
-
-        const geometry = new THREE.PlaneGeometry(plane.size.x, plane.size.y);
-        const mesh = new THREE.Mesh(geometry, material);
-
-        mesh.position.copy(plane.position);
-        mesh.rotation.copy(plane.rotation);
 
         this.scene.add(mesh);
     }
@@ -560,14 +419,13 @@ export default class MonitorScreen extends EventEmitter {
     }
 
     update() {
-        // CRT warm-up: a bright flicker, then the black plane fades out
+        // Panel wake-up: the black plane fades out
         if (this.powerOnTime >= 0) {
             this.powerOnTime += Math.min(this.application.time.delta, 100) / 1000;
             const t = this.powerOnTime;
             const material = this.screenOff.material as THREE.MeshBasicMaterial;
-            if (t < 0.25) material.opacity = Math.random() < 0.5 ? 0.15 : 0.9;
-            else material.opacity = Math.max(0, 1 - (t - 0.25) / 0.6) * 0.6;
-            if (t > 0.85) {
+            material.opacity = Math.max(0, 1 - t / 0.6);
+            if (t > 0.6) {
                 this.screenOff.visible = false;
                 this.powerOnTime = -1;
             }
