@@ -41,6 +41,7 @@ export default class MonitorScreen extends EventEmitter {
     dimmingPlane: THREE.Mesh;
     screenOff: THREE.Mesh;
     powered: boolean;
+    iframe: HTMLIFrameElement;
     powerOnTime: number;
 
     constructor() {
@@ -157,6 +158,7 @@ export default class MonitorScreen extends EventEmitter {
 
         // Create iframe
         const iframe = document.createElement('iframe');
+        this.iframe = iframe;
 
         // Bubble mouse move events to the main application, so we can affect the camera
         iframe.onload = () => {
@@ -174,6 +176,12 @@ export default class MonitorScreen extends EventEmitter {
                 window.addEventListener('message', (event) => {
                     if (!event.data || typeof event.data.type !== 'string')
                         return;
+                    // the OS boots when the monitor is on; tell it if it
+                    // already is by the time it has loaded
+                    if (event.data.type === 'os-ready') {
+                        if (this.powered) this.sendPowerOn();
+                        return;
+                    }
                     if (event.data.type === 'os-wallpaper') {
                         const lighting = this.application.world?.lighting;
                         if (lighting && typeof event.data.lightColor === 'string')
@@ -216,6 +224,8 @@ export default class MonitorScreen extends EventEmitter {
 
                     iframe.dispatchEvent(evt);
                 });
+                // in case the screen came on before the OS was listening
+                if (this.powered) this.sendPowerOn();
             }
         };
 
@@ -241,7 +251,7 @@ export default class MonitorScreen extends EventEmitter {
         iframe.className = 'jitter';
         iframe.id = 'computer-screen';
         iframe.frameBorder = '0';
-        iframe.title = 'MohiteOS';
+        iframe.title = 'SamOS';
 
         // Add iframe to container
         container.appendChild(iframe);
@@ -403,6 +413,11 @@ export default class MonitorScreen extends EventEmitter {
         this.powerOnTime = 0;
         this.application.world.lighting?.setScreenOn();
         UIEventBus.dispatch('screenPowerOn', {});
+        this.sendPowerOn();
+    }
+
+    sendPowerOn() {
+        this.iframe?.contentWindow?.postMessage({ type: 'power-on' }, '*');
     }
 
     /**
