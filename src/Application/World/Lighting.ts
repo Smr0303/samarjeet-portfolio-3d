@@ -76,13 +76,9 @@ function tuned(): typeof DEFAULTS {
     };
 }
 
+// Night only: the day switch is gone, so ignore any stored 'day'.
 export function storedTheme(): RoomTheme {
-    try {
-        const v = window.localStorage.getItem(STORAGE_KEY);
-        if (v === 'day' || v === 'night') return v;
-    } catch (e) {}
-    const q = new URLSearchParams(window.location.search).get('theme');
-    return q === 'day' ? 'day' : 'night';
+    return 'night';
 }
 
 export function storeTheme(theme: RoomTheme) {
